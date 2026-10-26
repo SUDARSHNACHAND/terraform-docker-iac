@@ -1,0 +1,328 @@
+================================================================================
+TERRAFORM INFRASTRUCTURE AS CODE (IaC) - EXECUTION LOGS
+Objective: Provision a local Docker container using Terraform
+Provider: kreuzwerker/docker (~> 3.0.2)
+Target: Local Docker Engine (Docker Desktop on Windows)
+Container: nginx:alpine (Port 8000 -> 80)
+================================================================================
+
+================================================================================
+STEP 0: ENVIRONMENT AND PREREQUISITES VERIFICATION
+================================================================================
+$ terraform -version
+Terraform v1.16.0
+on windows_amd64
+
+$ docker --version
+Docker version 29.9.2, build a82e528
+
+$ docker context inspect
+[
+    {
+        "Name": "desktop-linux",
+        "Metadata": {
+            "Description": "Docker Desktop"
+        },
+        "Endpoints": {
+            "docker": {
+                "Host": "npipe:////./pipe/dockerDesktopLinuxEngine",
+                "SkipTLSVerify": false
+            }
+        }
+    }
+]
+
+================================================================================
+STEP 1: INITIALIZE WORKING DIRECTORY (terraform init)
+================================================================================
+$ terraform init
+
+Initializing the backend...
+
+Initializing provider plugins...
+- Finding kreuzwerker/docker versions matching "~> 3.0.2"...
+- Installing kreuzwerker/docker v3.0.2...
+- Installed kreuzwerker/docker v3.0.2 (self-signed, key ID BD080C4571C6104C)
+
+Partner and community providers are signed by their developers.
+If you'd like to know more about provider signing, you can read about it here:
+https://developer.hashicorp.com/terraform/cli/plugins/signing
+
+Terraform has created a lock file .terraform.lock.hcl to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+
+================================================================================
+STEP 2: VALIDATE CONFIGURATION (terraform validate & fmt)
+================================================================================
+$ terraform validate
+Success! The configuration is valid.
+
+$ terraform fmt -check
+[Clean exit code 0 - all files are properly formatted]
+
+================================================================================
+STEP 3: GENERATE EXECUTION PLAN (terraform plan)
+================================================================================
+$ terraform plan -out=tfplan
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # docker_container.nginx_container will be created
+  + resource "docker_container" "nginx_container" {
+      + attach                                      = false
+      + bridge                                      = (known after apply)
+      + command                                     = (known after apply)
+      + container_logs                              = (known after apply)
+      + container_read_refresh_timeout_milliseconds = 15000
+      + entrypoint                                  = (known after apply)
+      + env                                         = (known after apply)
+      + exit_code                                   = (known after apply)
+      + hostname                                    = (known after apply)
+      + id                                          = (known after apply)
+      + image                                       = (known after apply)
+      + init                                        = (known after apply)
+      + ipc_mode                                    = (known after apply)
+      + log_driver                                  = (known after apply)
+      + logs                                        = false
+      + must_run                                    = true
+      + name                                        = "terraform-docker-nginx"
+      + network_data                                = (known after apply)
+      + read_only                                   = false
+      + remove_volumes                              = true
+      + restart                                     = "no"
+      + rm                                          = false
+      + runtime                                     = (known after apply)
+      + security_opts                               = (known after apply)
+      + shm_size                                    = (known after apply)
+      + start                                       = true
+      + stdin_open                                  = false
+      + stop_signal                                 = (known after apply)
+      + stop_timeout                                = (known after apply)
+      + tty                                         = false
+      + wait                                        = false
+      + wait_timeout                                = 60
+
+      + healthcheck (known after apply)
+
+      + labels (known after apply)
+
+      + ports {
+          + external = 8000
+          + internal = 80
+          + ip       = "0.0.0.0"
+          + protocol = "tcp"
+        }
+    }
+
+  # docker_image.nginx will be created
+  + resource "docker_image" "nginx" {
+      + id           = (known after apply)
+      + image_id     = (known after apply)
+      + keep_locally = false
+      + name         = "nginx:alpine"
+      + repo_digest  = (known after apply)
+    }
+
+Plan: 2 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + container_id   = (known after apply)
+  + container_name = "terraform-docker-nginx"
+  + container_url  = "http://localhost:8000"
+  + external_port  = 8000
+  + image_id       = (known after apply)
+
+Saved the plan to: tfplan
+
+================================================================================
+STEP 4: APPLY INFRASTRUCTURE (terraform apply)
+================================================================================
+$ terraform apply "tfplan"
+docker_image.nginx: Creating...
+docker_image.nginx: Creation complete after 7s [id=sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417nginx:alpine]
+docker_container.nginx_container: Creating...
+docker_container.nginx_container: Creation complete after 2s [id=4ef395da2ef54590940b0bce22a15ef94f50ff9e46699f70dfab41ee9a142562]
+
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+container_id = "4ef395da2ef54590940b0bce22a15ef94f50ff9e46699f70dfab41ee9a142562"
+container_name = "terraform-docker-nginx"
+container_url = "http://localhost:8000"
+external_port = 8000
+image_id = "sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417"
+
+================================================================================
+STEP 5: VERIFY CONTAINER AND HTTP ENDPOINT
+================================================================================
+$ docker ps --filter "name=terraform-docker-nginx"
+CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS          PORTS                  NAMES
+4ef395da2ef5   a3554c0d0b48   "/docker-entrypoint.…"   28 seconds ago   Up 27 seconds   0.0.0.0:8000->80/tcp   terraform-docker-nginx
+
+$ curl.exe -i http://localhost:8000
+HTTP/1.1 200 OK
+Server: nginx/1.31.8
+Date: Mon, 26 Oct 2026 13:49:08 GMT
+Content-Type: text/html
+Content-Length: 896
+Last-Modified: Wed, 21 Oct 2026 17:54:44 GMT
+Connection: keep-alive
+ETag: "6ad8fc64-380"
+Accept-Ranges: bytes
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, nginx is successfully installed and working.</p>
+</body>
+</html>
+
+================================================================================
+STEP 6: INSPECT TERRAFORM STATE (terraform state)
+================================================================================
+$ terraform state list
+docker_container.nginx_container
+docker_image.nginx
+
+$ terraform state show docker_container.nginx_container
+# docker_container.nginx_container:
+resource "docker_container" "nginx_container" {
+    attach                                      = false
+    bridge                                      = null
+    command                                     = [
+        "nginx",
+        "-g",
+        "daemon off;",
+    ]
+    container_read_refresh_timeout_milliseconds = 15000
+    cpu_shares                                  = 0
+    entrypoint                                  = [
+        "/docker-entrypoint.sh",
+    ]
+    hostname                                    = "4ef395da2ef5"
+    id                                          = "4ef395da2ef54590940b0bce22a15ef94f50ff9e46699f70dfab41ee9a142562"
+    image                                       = "sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417"
+    init                                        = false
+    ipc_mode                                    = "private"
+    log_driver                                  = "local"
+    logs                                        = false
+    max_retry_count                             = 0
+    memory                                      = 0
+    memory_swap                                 = 0
+    must_run                                    = true
+    name                                        = "terraform-docker-nginx"
+    network_data                                = [
+        {
+            gateway                   = "172.17.0.1"
+            ip_address                = "172.17.0.3"
+            ip_prefix_length          = 16
+            mac_address               = "66:3d:ad:e5:6f:ed"
+            network_name              = "bridge"
+        },
+    ]
+    network_mode                                = "bridge"
+    read_only                                   = false
+    remove_volumes                              = true
+    restart                                     = "no"
+    rm                                          = false
+    runtime                                     = "runc"
+    start                                       = true
+    stdin_open                                  = false
+    stop_signal                                 = "SIGQUIT"
+    tty                                         = false
+    wait                                        = false
+    wait_timeout                                = 60
+    working_dir                                 = "/"
+
+    ports {
+        external = 8000
+        internal = 80
+        ip       = "0.0.0.0"
+        protocol = "tcp"
+    }
+}
+
+$ terraform output
+container_id = "4ef395da2ef54590940b0bce22a15ef94f50ff9e46699f70dfab41ee9a142562"
+container_name = "terraform-docker-nginx"
+container_url = "http://localhost:8000"
+external_port = 8000
+image_id = "sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417"
+
+================================================================================
+STEP 7: DESTROY INFRASTRUCTURE (terraform destroy)
+================================================================================
+$ terraform destroy -auto-approve
+docker_image.nginx: Refreshing state... [id=sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417nginx:alpine]
+docker_container.nginx_container: Refreshing state... [id=4ef395da2ef54590940b0bce22a15ef94f50ff9e46699f70dfab41ee9a142562]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # docker_container.nginx_container will be destroyed
+  - resource "docker_container" "nginx_container" { ... }
+
+  # docker_image.nginx will be destroyed
+  - resource "docker_image" "nginx" { ... }
+
+Plan: 0 to add, 0 to change, 2 to destroy.
+
+Changes to Outputs:
+  - container_id   = "4ef395da2ef54590940b0bce22a15ef94f50ff9e46699f70dfab41ee9a142562" -> null
+  - container_name = "terraform-docker-nginx" -> null
+  - container_url  = "http://localhost:8000" -> null
+  - external_port  = 8000 -> null
+  - image_id       = "sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417" -> null
+docker_container.nginx_container: Destroying... [id=4ef395da2ef54590940b0bce22a15ef94f50ff9e46699f70dfab41ee9a142562]
+docker_container.nginx_container: Destruction complete after 0s
+docker_image.nginx: Destroying... [id=sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417nginx:alpine]
+docker_image.nginx: Destruction complete after 1s
+
+Destroy complete! Resources: 2 destroyed.
+
+================================================================================
+STEP 8: VERIFY COMPLETE CLEANUP
+================================================================================
+$ terraform state list
+[Empty output - no managed resources remaining]
+
+$ docker ps --filter "name=terraform-docker-nginx"
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+[No active containers - clean teardown verified]
+
+================================================================================
+CONCLUSION:
+Infrastructure as Code provisioning lifecycle completed successfully:
+- Declarative resource specification in Terraform HCL
+- Idempotent execution planning and approval
+- Automated resource lifecycle (Create, Read/State, Destroy)
+================================================================================
